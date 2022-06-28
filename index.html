@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Abfahrtstafel live</title>
+    <link rel="icon" href="./media/icons/departure_icon.png" />
+
+    <!-- Bootstrap -->
+    <link
+      rel="stylesheet"
+      href="./includes/frameworks/bootstrap/bootstrap.min.css"
+    />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div
+      class="offcanvas offcanvas-start"
+      tabindex="-1"
+      id="menu"
+      aria-labelledby="menu"
+    >
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title">Menü</h5>
+        <button
+          type="button"
+          class="btn-close text-reset"
+          data-bs-dismiss="offcanvas"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="offcanvas-body overflow-auto">
+        <div class="row">
+            <h3>Station</h3>
+          <input
+            class="col-9"
+            type="text"
+            id="stationInput"
+            placeholder="Station..."
+            list="suggestions"
+          />
+          <datalist id="suggestions" autocomplete="off"> </datalist>
+          <label class="col" for="liveUpdate">Live Laden:</label>
+          <input
+            class="col"
+            type="checkbox"
+            id="liveUpdate"
+            data-toggleParam="liveReload"
+            checked
+          />
+        </div>
+        <div class="row mt-3">
+          <h3>Verkehrsmittel</h3>
+          <div id="products" class="d-flex flex-column">
+            <div class="row">
+              <div class="col d-flex flex-column">
+                <label for="bus">Bus:</label>
+                <input
+                  data-toggleParam="bus"
+                  type="checkbox"
+                  id="bus"
+                  checked
+                />
+                <label class="" for="ferry">Färe:</label>
+                <input
+                  data-toggleParam="ferry"
+                  type="checkbox"
+                  id="ferry"
+                  checked
+                />
+                <label class="" for="national">National:</label>
+                <input
+                  data-toggleParam="national"
+                  type="checkbox"
+                  id="national"
+                  checked
+                />
+                <label class="" for="nationalExpress">Nationalexpress:</label>
+                <input
+                  data-toggleParam="nationalExpress"
+                  type="checkbox"
+                  id="nationalExpress"
+                  checked
+                />
+                <label class="" for="regional">Regional:</label>
+                <input
+                  data-toggleParam="regional"
+                  type="checkbox"
+                  id="regional"
+                  checked
+                />
+              </div>
+              <div class="col d-flex flex-column">
+                <label class="" for="regionalExp">Regionalexpress:</label>
+                <input
+                  data-toggleParam="regionalExp"
+                  type="checkbox"
+                  id="regionalExp"
+                  checked
+                />
+                <label class="" for="suburban">S-Bahn:</label>
+                <input
+                  data-toggleParam="suburban"
+                  type="checkbox"
+                  id="suburban"
+                  checked
+                />
+                <label class="" for="subway">U-Bahn:</label>
+                <input
+                  data-toggleParam="subway"
+                  type="checkbox"
+                  id="subway"
+                  checked
+                />
+                <label class="" for="taxi">Taxi:</label>
+                <input
+                  data-toggleParam="taxi"
+                  type="checkbox"
+                  id="taxi"
+                  checked
+                />
+                <label class="" for="tram">Tram:</label>
+                <input
+                  data-toggleParam="tram"
+                  type="checkbox"
+                  id="tram"
+                  checked
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="col" for="duration">Anzeigen für ___ Minuten:</label>
+          <input
+            class="col-2"
+            type="number"
+            id="duration"
+            placeholder="Anzeigen für .... Minuten"
+            value="60"
+            data-changeParam="duration"
+          />
+          <label class="col" for="maxResults"
+            >Maximale Anzahl an Ergebnissen:</label
+          >
+          <input
+            class="col-2"
+            type="number"
+            id="maxResults"
+            placeholder="Anzahl Ergebnisse"
+            value="20"
+            data-changeParam="maxResults"
+          />
+        </div>
+
+        <label class="d-inline" for="showDelay"
+            >Verspätungen anzeigen:</label
+          >
+          <input
+            type="checkbox"
+            id="showDelay"
+            data-toggleParam="showDelay"
+          />
+        
+
+          <button
+            class="btn btn-primary btn-lg d-block m-auto mt-3"
+            id="searchBtn"
+          >
+            Suchen
+          </button>
+       
+        <!-- geoLocation -->
+          <button class="btn btn-info mt-4 m-auto d-block" id="pickGeoLocation">
+            Station nach Standort suchen
+          </button>
+          <ul class="d-block m-auto" id="geoLocationSuggestionsList"></ul>
+        
+        <div class="mt-3" id="furtherOptions">
+            <h4>Weitere Optionen</h4>
+            <section class="mt-2">
+                <label class="d-inline" for="autoGeoLocation"
+                >Abfahrtstafel automatisch an aktuellen Standort anpassen:</label
+              >
+              <input
+                data-toggleParam="autoGeoLocation"
+                type="checkbox"
+                id="autoGeoLocation"
+              />
+            </section>
+            <section class="mt-2">
+                <label class="d-inline" for="liveClockCheckbox"
+                >Live Zeit mit Sekunden anzeigen:</label
+              >
+              <input
+                type="checkbox"
+                id="liveClockCheckbox"
+                data-toggleParam="liveClock"
+              />
+            </section>
+            
+
+
+          
+        </div>
+        <section class="mt-2">
+            <label class="col mt-1" for="updateInterval"
+            >Update-Interval in Sek.(>= 10s):</label
+          >
+          <input
+            class="col-2"
+            type="number"
+            id="updateInterval"
+            placeholder="Anzahl Ergebnisse"
+            value="30"
+            data-changeParam="updateInterval"
+          />
+          <div class="lastUpdate">
+            <span>Letztes Update: </span>
+            <span class="fw-bold" id="lastUpdate"></span>
+          </div>
+        </section>
+
+        <!-- Update interval -->
+        
+          
+        
+</div>
+        
+      </div>
+    </div>
+    <button
+      class="d-block btn btn-primary m-auto"
+      type="button"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#menu"
+      aria-controls="menu"
+    >
+      Menü
+    </button>
+    <div class="container">
+      <div class="row">
+        <h1 class="text-center">Abfahrtstafel</h1>
+        <h3 id="date" class="text-center"></h3>
+        <h2 class="text-center" id="stationName">_____________</h2>
+      </div>
+
+      <div class="row">
+        <table class="text-center">
+          <thead>
+            <tr>
+              <th>Linie</th>
+              <th>Richtung</th>
+              <th>Abfahrt</th>
+            </tr>
+          </thead>
+          <tbody id="departuresTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <script
+      src="./includes/frameworks/bootstrap/bootstrap.bundle.min.js"
+      defer
+    ></script>
+    <script src="main.js" type="module" defer></script>
+  </body>
+</html>
