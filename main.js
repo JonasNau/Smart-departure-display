@@ -12,18 +12,6 @@ class DepartureTable {
     //station params
     this.stationID = null;
     this.stationName = null;
-
-    //types of transport
-    this.bus = true;
-    this.ferry = true;
-    this.national = true;
-    this.nationalExpress = true;
-    this.regional = true;
-    this.regionalExp = true;
-    this.suburban = true;
-    this.subway = true;
-    this.taxi = true;
-    this.tram = true;
   }
 
   startClock() {
@@ -98,9 +86,7 @@ class DepartureTable {
   }
 
   async getStationData(id, name) {
-    let stationData= await Utils.fetchData(
-      DB_API_URL + `/stations/${id}`
-    );
+    let stationData = await Utils.fetchData(DB_API_URL + `/stations/${id}`);
     if (stationData) return stationData;
     if (!name) return false;
 
@@ -122,7 +108,7 @@ class DepartureTable {
     stationName.innerHTML = name;
     //request stationData by id
     this.stationData = await this.getStationData(id, name);
-    console.log(`Station data for ${name}:`, this.stationData)
+    console.log(`Station data for ${name}:`, this.stationData);
   }
 
   async getStationsByName(name) {
@@ -170,6 +156,13 @@ class DepartureTable {
     );
   }
 
+  departureRowContainsText(htmlRow, text) {
+    return htmlRow.innerHTML.toLowerCase().includes(text.toLowerCase());
+  }
+
+  updateDeparturesDebounce = (timeout) =>
+    Utils.debounce(() => departureTable.update(), timeout);
+
   async update() {
     if (autoGeoLocation.checked) {
       await this.takeFirstResultByGeolocation();
@@ -203,10 +196,17 @@ class DepartureTable {
       maxResults.value
     );
     departuresList.innerHTML = "";
-    console.log("Next departures", { nextDepartures });
+    const setNoDeparturesFeedback = (feedback) => {
+      departuresList.innerHTML = feedback;
+    };
+    console.log(
+      `Next departures for station ${stationName} (${this.stationID})`,
+      { nextDepartures }
+    );
     if (!nextDepartures || !nextDepartures.length) {
-      departuresList.innerHTML =
-        "<tr><td colspan='3'><h3 class='d-block text-centered mt-4'>Keine nächsten Abfahrten</h3></td></tr>";
+      setNoDeparturesFeedback(
+        `<tr><td colspan='3'><h3 class='d-block text-centered mt-4'>Keine nächsten Abfahrten"</h3></td></tr>`
+      );
       return false;
     }
 
@@ -216,24 +216,22 @@ class DepartureTable {
       //Show with delay
       if (showDelay.checked) {
         if (leavingVehicle.delay) {
-          let Planned_departure = new Date(leavingVehicle.when);
+          let Planned_departure = new Date(leavingVehicle.plannedWhen);
           let delay = leavingVehicle.delay;
 
           let departure_with_Delay = new Date(
-            Planned_departure.getTime() + delay * 1000
+            leavingVehicle.when
           ); //Add delay in milliseconds to new departure
 
-          console.log({ delay, Planned_departure, departure_with_Delay });
+          console.log({leavingVehicle, delay, Planned_departure, departure_with_Delay });
 
           //Show on list
           let remainingTime = Utils.secondsToArrayOrString(
             (departure_with_Delay - new Date().getTime()) / 1000,
             "Array"
           );
-          if (
-            new Date(leavingVehicle.when).getTime() - new Date().getTime() <
-            0
-          ) {
+          if (departure_with_Delay.getTime() - new Date().getTime() < 0) {
+            console.log(leavingVehicle, `already departing`);
             //vehicle is already departed
             continue;
           }
@@ -252,7 +250,7 @@ class DepartureTable {
           item.innerHTML = `
             <td class="line">${leavingVehicle?.line?.name}</td>
             <td class="destination">${
-              leavingVehicle.destination.name ?? leavingVehicle.direction
+              leavingVehicle.destination?.name ?? leavingVehicle.direction
             }</td>
             <td class="departure">
                 <div>${departureString}</div>
@@ -279,6 +277,13 @@ class DepartureTable {
             let plattform = document.createElement("div");
             plattform.innerHTML = `<div>Bahnsteig ${leavingVehicle.plannedPlatform}</div>`;
             item.querySelector(".departure").appendChild(plattform);
+          }
+          if (!this.departureRowContainsText(item, filterText.value)) {
+            console.debug("Departure doesn't contain the searched information", {
+              filterText,
+              item,
+            });
+            continue;
           }
           departuresList.appendChild(item);
 
@@ -309,7 +314,7 @@ class DepartureTable {
       item.innerHTML = `
         <td class="line">${leavingVehicle?.line?.name}</td>
         <td class="destination">${
-          leavingVehicle.destination.name ?? leavingVehicle.direction
+          leavingVehicle.destination?.name ?? leavingVehicle.direction
         }</td>
         <td class="departure">
             <div>${departureString}</div>
@@ -324,7 +329,22 @@ class DepartureTable {
         plattform.innerHTML = `<div>Bahnsteig ${leavingVehicle.plannedPlatform}</div>`;
         item.querySelector(".departure").appendChild(plattform);
       }
+
+      if (!this.departureRowContainsText(item, filterText.value)) {
+        console.debug("Departure doesn't contain the searched information", {
+          filterText,
+          item,
+        });
+        continue;
+      }
+
       departuresList.appendChild(item);
+    }
+
+    if (departuresList.querySelectorAll("tr").length === 0) {
+      setNoDeparturesFeedback(
+        `<tr><td colspan='3'>Die Suche nach '${filterText.value}' lieferte keine Ergebnisse.</td></tr>`
+      );
     }
   }
 
@@ -347,7 +367,6 @@ class DepartureTable {
       return false;
     }
     stationInput.value = "";
-    stationInput.focus();
     stations.forEach((station) => {
       let suggestion = document.createElement("li");
       suggestion.innerHTML = `<a>${station.name}</a>`;
@@ -363,8 +382,14 @@ class DepartureTable {
   }
 }
 
+function setParamCheckboxAndURL(checkbox, checked, param) {
+  if (param == null) param = checkbox.getAttribute("data-toggleParam");
+  checkbox.checked = checked;
+  Utils.insertUrlParam(param, checkbox.checked);
+}
+
 function addtoggleParam(checkbox, param = null) {
-  if (!param) param = checkbox.getAttribute("data-toggleParam");
+  if (param == null) param = checkbox.getAttribute("data-toggleParam");
   checkbox.addEventListener("click", () => {
     //Add to url
     Utils.insertUrlParam(param, checkbox.checked);
@@ -374,8 +399,15 @@ function addtoggleParam(checkbox, param = null) {
     checkbox.checked = Utils.makeJSON(queryParams.get(param));
   }
 }
+
+function setParamTextAndURL(input, value, param) {
+  if (param == null) param = input.getAttribute("data-toggleParam");
+  input.value = value;
+  Utils.insertUrlParam(param, encodeURI(input.value));
+}
+
 function addChangeParam(element, param = null) {
-  if (!param) param = element.getAttribute("data-changeParam");
+  if (param == null) param = element.getAttribute("data-changeParam");
   element.addEventListener("input", () => {
     //Add to url
     Utils.insertUrlParam(param, encodeURI(element.value));
@@ -444,15 +476,24 @@ addtoggleParam(tram);
 const updateIntervalInput = document.querySelector("#updateInterval");
 addChangeParam(updateIntervalInput);
 
+//Filter Text
+const filterText = document.querySelector("#filterText");
+addChangeParam(filterText);
+filterText.addEventListener(
+  "input",
+  departureTable.updateDeparturesDebounce(500)
+);
+
 //Geo location btn
 const pickGeoLocationBtn = document.querySelector("#pickGeoLocation");
 pickGeoLocationBtn.addEventListener("click", async () => {
   //Take location
   let geolocation = await Utils.getCurrentPosition();
-  departureTable.getSuggestionsForNearestStations(
+  await departureTable.getSuggestionsForNearestStations(
     geolocation.coords.latitude,
     geolocation.coords.longitude
   );
+  setParamCheckboxAndURL(autoGeoLocation, false);
 });
 //Auto geoLocation
 const autoGeoLocation = document.querySelector("#autoGeoLocation");
@@ -490,7 +531,7 @@ stationInput.addEventListener("keyup", (event) => {
     startSearch(stationInput.value);
     departureTable.update();
   }
-
+  setParamCheckboxAndURL(autoGeoLocation, false);
   departureTable.getSuggestionsbyName(stationInput.value);
 });
 //searchBtn

@@ -1199,3 +1199,24 @@ export function showClock(element, options = {
 export function stopClock(clock) {
   return window.clearInterval(clock);
 }
+
+
+
+export function debounce(func, timeout = 300){
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+  };
+}
+
+export function removeAllEventlisteners(element) {
+  if (!element) {
+    return element;
+  }
+  // Make a copy
+  var copy = element.cloneNode(true);
+  //Replace
+  element.replaceWith(copy);
+  return copy;
+}
